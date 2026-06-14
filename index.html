@@ -146,6 +146,14 @@ section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
 }
 .lead-form input:focus { border-color: var(--accent); }
 .lead-form .btn { padding: 0.75rem 1.5rem; }
+.form-status {
+  display: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+.form-status.success { color: var(--green); }
+.form-status.error { color: var(--red); }
 .form-note { font-size: 0.75rem; color: var(--text2); margin-top: 0.75rem; }
 
 /* ── Blog ── */
@@ -279,8 +287,12 @@ footer .fish { font-size: 1.2rem; }
   <div class="lead-section">
     <h2>📥 Free: 20 AI Prompts to Find Clients</h2>
     <p>Get the free mini-pack: 20 proven prompts to find, pitch & close clients using AI. Enter your email — delivered instantly.</p>
-    <form class="lead-form" id="leadForm" action="#" method="POST">
-      <input type="email" name="email" placeholder="your@email.com" required>
+    <div class="form-status success" id="leadSuccess" role="status">Check your downloads. The guide is ready, and your email was saved.</div>
+    <div class="form-status error" id="leadError" role="alert">Something went wrong. Try again or email red.david.ai@gmail.com.</div>
+    <form class="lead-form" id="leadForm" action="https://formspree.io/f/xaqzaady" method="POST">
+      <input type="email" name="email" placeholder="your@email.com" autocomplete="email" required>
+      <input type="hidden" name="source" value="koihub-lead-magnet">
+      <input type="hidden" name="_subject" value="New koi hub lead magnet signup">
       <button type="submit" class="btn btn-primary">Send me the free guide</button>
     </form>
     <p class="form-note">No spam. Unsubscribe anytime. We respect your inbox.</p>
@@ -340,51 +352,63 @@ footer .fish { font-size: 1.2rem; }
 
 <!-- Lead form handler -->
 <script>
-document.getElementById('leadForm').addEventListener('submit', function(e) {
-  e.preventDefault();
-  var email = this.querySelector('input[name="email"]').value;
-  // Formspree form handling (free, no backend)
-  // Fallback: direct PDF download if Formspree not configured
-  var FORMSPREE_FORM_ID = 'YOUR_FORM_ID';
-  
-  if (FORMSPREE_FORM_ID === 'YOUR_FORM_ID') {
-    // Direct download — no email capture yet, but user gets value
-    var link = document.createElement('a');
-    link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
-    link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert('✅ Download started! Enjoy the 20 prompts.');
-    this.reset();
-    return;
+var leadForm = document.getElementById('leadForm');
+var leadSuccess = document.getElementById('leadSuccess');
+var leadError = document.getElementById('leadError');
+var leadButton = leadForm.querySelector('button[type="submit"]');
+var leadEndpoint = 'https://formspree.io/f/xaqzaady';
+var leadMagnetPath = 'lead-magnet-20-prompts-clientes-ia.pdf';
+
+function setLeadStatus(type, message) {
+  leadSuccess.style.display = 'none';
+  leadError.style.display = 'none';
+
+  if (type === 'success') {
+    leadSuccess.textContent = message;
+    leadSuccess.style.display = 'block';
   }
-  
-  fetch('https://formspree.io/f/' + FORMSPREE_FORM_ID, {
+
+  if (type === 'error') {
+    leadError.textContent = message;
+    leadError.style.display = 'block';
+  }
+}
+
+function downloadLeadMagnet() {
+  var link = document.createElement('a');
+  link.href = leadMagnetPath;
+  link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+leadForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  setLeadStatus();
+  leadButton.disabled = true;
+  leadButton.textContent = 'Sending...';
+
+  var payload = new FormData(leadForm);
+  payload.append('timestamp', new Date().toISOString());
+
+  fetch(leadEndpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify({ email: email, source: 'koihub-lead-magnet', timestamp: new Date().toISOString() })
+    headers: { 'Accept': 'application/json' },
+    body: payload
   }).then(function(response) {
-    if (response.ok) {
-      var link = document.createElement('a');
-      link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
-      link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      alert('✅ Check your email! The guide is on its way.');
-      this.reset();
-    } else {
+    if (!response.ok) {
       throw new Error('Form error');
     }
+
+    downloadLeadMagnet();
+    setLeadStatus('success', 'Lead saved. Your download should start now.');
+    leadForm.reset();
   }).catch(function() {
-    var link = document.createElement('a');
-    link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
-    link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    this.reset();
+    setLeadStatus('error', 'The email capture failed. Try again or email red.david.ai@gmail.com.');
+  }).finally(function() {
+    leadButton.disabled = false;
+    leadButton.textContent = 'Send me the free guide';
   });
 });
 </script>
