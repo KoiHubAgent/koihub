@@ -343,24 +343,48 @@ footer .fish { font-size: 1.2rem; }
 document.getElementById('leadForm').addEventListener('submit', function(e) {
   e.preventDefault();
   var email = this.querySelector('input[name="email"]').value;
-  // n8n webhook — replace URL after setup
-  var WEBHOOK_URL = 'YOUR_N8N_WEBHOOK_URL_HERE';
+  // Formspree form handling (free, no backend)
+  // Fallback: direct PDF download if Formspree not configured
+  var FORMSPREE_FORM_ID = 'YOUR_FORM_ID';
   
-  if (WEBHOOK_URL === 'YOUR_N8N_WEBHOOK_URL_HERE') {
-    // Fallback: mailto for now
-    window.location.href = 'mailto:red.david.ai@gmail.com?subject=Lead Magnet Request&body=Send me the free 20 AI Prompts guide! Email: ' + encodeURIComponent(email);
+  if (FORMSPREE_FORM_ID === 'YOUR_FORM_ID') {
+    // Direct download — no email capture yet, but user gets value
+    var link = document.createElement('a');
+    link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
+    link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    alert('✅ Download started! Enjoy the 20 prompts.');
+    this.reset();
     return;
   }
   
-  fetch(WEBHOOK_URL, {
+  fetch('https://formspree.io/f/' + FORMSPREE_FORM_ID, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     body: JSON.stringify({ email: email, source: 'koihub-lead-magnet', timestamp: new Date().toISOString() })
-  }).then(function() {
-    alert('✅ Check your email! The guide is on its way.');
-    this.reset();
+  }).then(function(response) {
+    if (response.ok) {
+      var link = document.createElement('a');
+      link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
+      link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert('✅ Check your email! The guide is on its way.');
+      this.reset();
+    } else {
+      throw new Error('Form error');
+    }
   }).catch(function() {
-    alert('Something went wrong. Try again or email red.david.ai@gmail.com');
+    var link = document.createElement('a');
+    link.href = 'lead-magnet-20-prompts-clientes-ia.pdf';
+    link.download = '20-AI-Prompts-Find-Close-Clients.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    this.reset();
   });
 });
 </script>
