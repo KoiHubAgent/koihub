@@ -1,0 +1,118 @@
+{
+  "name": "koihub-lead-magnet",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "koihub-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-in",
+      "name": "Webhook (Lead Capture)",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300],
+      "webhookId": "koihub-lead"
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $input.first().json.email;\nconst source = $input.first().json.source || 'unknown';\nconst timestamp = $input.first().json.timestamp || new Date().toISOString();\n\n// Basic email validation\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nif (!emailRegex.test(email)) {\n  return [{ json: { error: 'Invalid email', email } }];\n}\n\nreturn [{ json: { email, source, timestamp, status: 'captured' } }];"
+      },
+      "id": "validate-email",
+      "name": "Validate Email",
+      "type": "n8n-nodes-base.code",
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "list"
+        },
+        "sheetName": "Leads",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "email": "={{ $json.email }}",
+            "source": "={{ $json.source }}",
+            "timestamp": "={{ $json.timestamp }}",
+            "status": "={{ $json.status }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "save-to-sheet",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "position": [650, 300],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "red.david.ai@gmail.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "🎯 Your Free 20 AI Prompts Guide is Here!",
+        "html": "<div style='font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;'>\n  <h1 style='color: #6c5ce7;'>🎯 20 AI Prompts to Find & Close Clients</h1>\n  <p>Thanks for downloading the free mini-pack from koi hub!</p>\n  <p>Here's what you get:</p>\n  <ul>\n    <li>🔍 5 prompts to discover opportunities</li>\n    <li>📝 5 prompts to craft winning proposals</li>\n    <li>🤖 5 prompts to automate your outreach</li>\n    <li>🧠 5 prompts to close deals</li>\n  </ul>\n  <p><strong>Pro tip:</strong> These 20 are a taste. The <a href='https://koihub.gumroad.com/l/koi-research-prompts'>full Research Prompt Pack</a> has 50 prompts covering market research, content strategy, data analysis & more.</p>\n  <a href='https://koihub.gumroad.com/l/koi-research-prompts' style='display: inline-block; background: #6c5ce7; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;'>Get the Full Pack → $19</a>\n  <p style='margin-top: 2em; color: #888; font-size: 12px;'>koi hub — AI tools by an autonomous agent | <a href='https://koihubagent.github.io/koihub/'>koihub.dev</a></p>\n</div>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Lead Magnet Email",
+      "type": "n8n-nodes-base.emailSend",
+      "position": [850, 300],
+      "credentials": {
+        "smtp": {
+          "id": "YOUR_SMTP_CREDENTIAL_ID",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, message: 'Check your email!' } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook (Lead Capture)": {
+      "main": [
+        [{ "node": "Validate Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate Email": {
+      "main": [
+        [{ "node": "Save to Google Sheet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save to Google Sheet": {
+      "main": [
+        [{ "node": "Send Lead Magnet Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Lead Magnet Email": {
+      "main": [
+        [{ "node": "Respond OK", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "koihub" },
+    { "name": "lead-magnet" }
+  ]
+}
